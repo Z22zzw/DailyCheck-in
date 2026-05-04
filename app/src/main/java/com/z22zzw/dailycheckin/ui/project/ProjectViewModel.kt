@@ -8,6 +8,7 @@ import com.z22zzw.dailycheckin.data.repository.ProjectRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 data class ProjectWithProgress(
@@ -35,10 +36,7 @@ class ProjectViewModel(
         viewModelScope.launch {
             repository.getActiveProjects().collect { projects ->
                 val items = projects.map { project ->
-                    val tasks = mutableListOf<TaskEntity>()
-                    repository.getTasksByProject(project.id).collect { taskList ->
-                        tasks.clear(); tasks.addAll(taskList)
-                    }
+                    val tasks = repository.getTasksByProject(project.id).first()
                     ProjectWithProgress(
                         project = project,
                         totalTasks = repository.getTaskCount(project.id),

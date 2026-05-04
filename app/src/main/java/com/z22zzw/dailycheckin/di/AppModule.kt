@@ -81,10 +81,18 @@ val viewModelModule = module {
     viewModel { AiChatViewModel(get(), get()) }
 }
 
+import android.content.Context
+
 private var _apiKey: String? = null
 
 private fun getApiKey(): String = _apiKey ?: ""
 
 fun setApiKey(key: String) { _apiKey = key }
+
+fun persistApiKey(context: Context, key: String) {
+    _apiKey = key
+    context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        .edit().putString("deepseek_api_key", key).apply()
+}
 
 private fun getApiKeyProvider(): () -> String? = { _apiKey }
