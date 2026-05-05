@@ -6,30 +6,44 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.z22zzw.dailycheckin.di.getApiConfig
 import com.z22zzw.dailycheckin.ui.theme.*
-import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun AiChatScreen(viewModel: AiChatViewModel = koinViewModel()) {
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
     var inputText by remember { mutableStateOf("") }
+    var showSettings by remember { mutableStateOf(false) }
+
+    // 首次打开检查：如果没有 API Key 则自动弹出设置
+    val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        val (_, key, _) = getApiConfig(context)
+        if (key.isBlank()) showSettings = true
+    }
 
     LaunchedEffect(uiState.messages.size) {
         if (uiState.messages.isNotEmpty()) listState.animateScrollToItem(uiState.messages.size - 1)
     }
 
     Column(Modifier.fillMaxSize().padding(24.dp)) {
-        Row(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text("AI 助手", style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.weight(1f))
-            Text("DeepSeek", style = MaterialTheme.typography.bodySmall, color = Gray400)
+            IconButton(onClick = { showSettings = true }) {
+                Icon(Icons.Default.Settings, contentDescription = "设置", tint = Gray400)
+            }
         }
 
         uiState.onboardingQuestion?.let { question ->
@@ -62,7 +76,7 @@ fun AiChatScreen(viewModel: AiChatViewModel = koinViewModel()) {
                 }
             }
             if (uiState.isLoading) {
-                item { CircularProgressIndicator(Modifier.padding(16.dp).align(Alignment.CenterHorizontally)) }
+                item { CircularProgressIndicator(Modifier.padding(16.dp)) }
             }
         }
 
@@ -93,5 +107,9 @@ fun AiChatScreen(viewModel: AiChatViewModel = koinViewModel()) {
                 Text("发送")
             }
         }
+    }
+
+    if (showSettings) {
+        AiSettingsDialog(onDismiss = { showSettings = false })
     }
 }

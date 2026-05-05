@@ -21,12 +21,14 @@ data class ProjectWithProgress(
 data class ProjectUiState(
     val projects: List<ProjectWithProgress> = emptyList(),
     val isLoading: Boolean = true,
-    val showCreateDialog: Boolean = false
+    val showCreateDialog: Boolean = false,
+    val showEditDialog: ProjectEntity? = null,
+    val showDeleteConfirm: ProjectEntity? = null,
+    val expandedProjectId: Long? = null,
+    val newTaskTitle: String = ""
 )
 
-class ProjectViewModel(
-    private val repository: ProjectRepository
-) : ViewModel() {
+class ProjectViewModel(private val repository: ProjectRepository) : ViewModel() {
     private val _uiState = MutableStateFlow(ProjectUiState())
     val uiState: StateFlow<ProjectUiState> = _uiState.asStateFlow()
 
@@ -44,7 +46,7 @@ class ProjectViewModel(
                         tasks = tasks
                     )
                 }
-                _uiState.value = ProjectUiState(projects = items, isLoading = false)
+                _uiState.value = _uiState.value.copy(projects = items, isLoading = false)
             }
         }
     }
@@ -56,14 +58,46 @@ class ProjectViewModel(
         }
     }
 
+    fun updateProject(name: String, deadline: Long?) {
+        val editing = _uiState.value.showEditDialog ?: return
+        viewModelScope.launch {
+            repository.updateProject(editing.copy(name = name, deadline = deadline))
+            _uiState.value = _uiState.value.copy(showEditDialog = null)
+        }
+    }
+
+    fun deleteProject() {
+        val project = _uiState.value.showDeleteConfirm ?: return
+        viewModelScope.launch {
+            repository.deleteProject(project.id)
+            _uiState.value = _uiState.value.copy(showDeleteConfirm = null)
+        }
+    }
+
     fun toggleTask(task: TaskEntity) {
         viewModelScope.launch { repository.toggleTask(task) }
     }
 
     fun addTask(projectId: Long, title: String) {
-        viewModelScope.launch { repository.createTask(projectId, title) }
+        viewModelScope.launch {
+            repository.createTask(projectId, title)
+            _uiState.value = _uiState.value.copy(newTaskTitle = "")
+        }
+    }
+
+    fun deleteTask(task: TaskEntity) {
+        viewModelScope.launch { repository.deleteTask(task.id) }
     }
 
     fun showCreateDialog() { _uiState.value = _uiState.value.copy(showCreateDialog = true) }
     fun dismissCreateDialog() { _uiState.value = _uiState.value.copy(showCreateDialog = false) }
+    fun showEditDialog(project: ProjectEntity) { _uiState.value = _uiState.value.copy(showEditDialog = project) }
+    fun dismissEditDialog() { _uiState.value = _uiState.value.copy(showEditDialog = null) }
+    fun showDeleteConfirm(project: ProjectEntity) { _uiState.value = _uiState.value.copy(showDeleteConfirm = project) }
+    fun dismissDeleteConfirm() { _uiState.value = _uiState.value.copy(showDeleteConfirm = null) }
+    fun toggleExpand(projectId: Long) {
+        val cur = _uiState.value.expandedProjectId
+        _uiState.value = _uiState.value.copy(expandedProjectId = if (cur == projectId) null else projectId)
+    }
+    fun setNewTaskTitle(title: String) { _uiState.value = _uiState.value.copy(newTaskTitle = title) }
 }

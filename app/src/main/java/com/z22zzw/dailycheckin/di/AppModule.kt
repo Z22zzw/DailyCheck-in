@@ -1,5 +1,6 @@
 package com.z22zzw.dailycheckin.di
 
+import android.content.Context
 import androidx.room.Room
 import com.z22zzw.dailycheckin.data.api.DeepSeekApi
 import com.z22zzw.dailycheckin.data.db.AppDatabase
@@ -45,8 +46,10 @@ val networkModule = module {
         }
         OkHttpClient.Builder()
             .addInterceptor { chain ->
+                val prefs = androidContext().getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                val key = prefs.getString("deepseek_api_key", "") ?: ""
                 val request = chain.request().newBuilder()
-                    .addHeader("Authorization", "Bearer ${getApiKey()}")
+                    .addHeader("Authorization", "Bearer $key")
                     .build()
                 chain.proceed(request)
             }
@@ -57,8 +60,10 @@ val networkModule = module {
     }
 
     single {
+        val prefs = androidContext().getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        val baseUrl = prefs.getString("deepseek_base_url", "https://api.deepseek.com") ?: "https://api.deepseek.com"
         Retrofit.Builder()
-            .baseUrl("https://api.deepseek.com/")
+            .baseUrl(baseUrl)
             .client(get<OkHttpClient>())
             .addConverterFactory(GsonConverterFactory.create())
             .build()
@@ -81,8 +86,6 @@ val viewModelModule = module {
     viewModel { AiChatViewModel(get(), get()) }
 }
 
-import android.content.Context
-
 private var _apiKey: String? = null
 
 private fun getApiKey(): String = _apiKey ?: ""
@@ -93,6 +96,24 @@ fun persistApiKey(context: Context, key: String) {
     _apiKey = key
     context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
         .edit().putString("deepseek_api_key", key).apply()
+}
+
+fun getApiConfig(context: Context): Triple<String, String, String> {
+    val prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+    return Triple(
+        prefs.getString("deepseek_base_url", "https://api.deepseek.com") ?: "https://api.deepseek.com",
+        prefs.getString("deepseek_api_key", "") ?: "",
+        prefs.getString("deepseek_model", "deepseek-v4-pro[1m]") ?: "deepseek-v4-pro[1m]"
+    )
+}
+
+fun saveApiConfig(context: Context, url: String, key: String, model: String) {
+    context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        .edit()
+        .putString("deepseek_base_url", url)
+        .putString("deepseek_api_key", key)
+        .putString("deepseek_model", model)
+        .apply()
 }
 
 private fun getApiKeyProvider(): () -> String? = { _apiKey }

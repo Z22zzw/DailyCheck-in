@@ -1,5 +1,7 @@
 package com.z22zzw.dailycheckin.ui.checkin
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,9 +15,10 @@ import androidx.compose.ui.unit.dp
 import com.z22zzw.dailycheckin.ui.theme.Blue500
 import com.z22zzw.dailycheckin.ui.theme.Gray400
 import com.z22zzw.dailycheckin.ui.theme.Green500
-import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.viewmodel.koinViewModel
 import java.time.LocalDate
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun CheckInScreen(viewModel: CheckInViewModel = koinViewModel()) {
     val uiState by viewModel.uiState.collectAsState()
@@ -46,7 +49,16 @@ fun CheckInScreen(viewModel: CheckInViewModel = koinViewModel()) {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(uiState.habits, key = { it.habit.id }) { item ->
                     Card(
-                        Modifier.fillMaxWidth(),
+                        Modifier
+                            .fillMaxWidth()
+                            .combinedClickable(
+                                onClick = {
+                                    if (!item.checkedInToday) viewModel.checkIn(item.habit.id)
+                                },
+                                onLongClick = {
+                                    if (item.checkedInToday) viewModel.showUncheckConfirm(item.habit.id)
+                                }
+                            ),
                         shape = RoundedCornerShape(14.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = if (item.checkedInToday) Color(0xFFE8F5E9) else Color.White
@@ -95,6 +107,23 @@ fun CheckInScreen(viewModel: CheckInViewModel = koinViewModel()) {
             },
             confirmButton = { Button(onClick = { viewModel.addHabit(habitName) }) { Text("创建") } },
             dismissButton = { OutlinedButton(onClick = { viewModel.dismissAddDialog() }) { Text("取消") } }
+        )
+    }
+
+    if (uiState.showUncheckConfirm != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissUncheckConfirm() },
+            title = { Text("取消打卡") },
+            text = { Text("确定取消今天的打卡记录吗？") },
+            confirmButton = {
+                Button(onClick = {
+                    viewModel.uncheckIn(uiState.showUncheckConfirm!!)
+                    viewModel.dismissUncheckConfirm()
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { viewModel.dismissUncheckConfirm() }) { Text("取消") }
+            }
         )
     }
 }

@@ -18,7 +18,8 @@ data class HabitItem(
 data class CheckInUiState(
     val habits: List<HabitItem> = emptyList(),
     val isLoading: Boolean = true,
-    val showAddDialog: Boolean = false
+    val showAddDialog: Boolean = false,
+    val showUncheckConfirm: Long? = null
 )
 
 class CheckInViewModel(
@@ -45,6 +46,18 @@ class CheckInViewModel(
 
     fun checkIn(habitId: Long) {
         viewModelScope.launch { repository.checkIn(habitId) }
+    }
+
+    fun uncheckIn(habitId: Long) {
+        viewModelScope.launch { repository.uncheckIn(habitId) }
+    }
+
+    fun showUncheckConfirm(habitId: Long) {
+        _uiState.value = _uiState.value.copy(showUncheckConfirm = habitId)
+    }
+
+    fun dismissUncheckConfirm() {
+        _uiState.value = _uiState.value.copy(showUncheckConfirm = null)
     }
 
     fun addHabit(name: String) {

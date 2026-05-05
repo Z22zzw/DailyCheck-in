@@ -43,4 +43,9 @@ class CheckInRepository(
     suspend fun getRecordsInRange(from: String, to: String): List<CheckInRecordEntity> {
         return checkInRecordDao.getRecordsInRange(from, to)
     }
+
+    suspend fun uncheckIn(habitId: Long) {
+        val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+        checkInRecordDao.deleteByHabitAndDate(habitId, today)
+    }
 }

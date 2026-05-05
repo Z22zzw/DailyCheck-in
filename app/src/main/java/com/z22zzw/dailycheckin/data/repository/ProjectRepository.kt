@@ -39,4 +39,8 @@ class ProjectRepository(
     suspend fun getDoneTaskCount(projectId: Long): Int = taskDao.countDoneByProject(projectId)
 
     suspend fun deleteTask(id: Long) = taskDao.delete(id)
+
+    suspend fun deleteProject(id: Long) = projectDao.delete(id)
+
+    suspend fun updateProject(project: ProjectEntity) = projectDao.update(project)
 }

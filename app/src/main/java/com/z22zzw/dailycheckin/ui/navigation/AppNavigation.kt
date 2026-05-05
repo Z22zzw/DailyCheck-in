@@ -54,7 +54,7 @@ fun AppNavigation() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.CheckIn.route) { CheckInScreen() }
-            composable(Screen.Project.route) { ProjectScreen {} }
+            composable(Screen.Project.route) { ProjectScreen() }
             composable(Screen.Note.route) { NoteScreen() }
             composable(Screen.Ai.route) { AiChatScreen() }
         }

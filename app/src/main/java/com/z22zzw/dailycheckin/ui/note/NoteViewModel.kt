@@ -12,7 +12,9 @@ import kotlinx.coroutines.launch
 data class NoteUiState(
     val notes: List<NoteEntity> = emptyList(),
     val filterType: String = "all",
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val editingNoteId: Long? = null,
+    val showDeleteConfirm: NoteEntity? = null
 )
 
 class NoteViewModel(
@@ -33,15 +35,36 @@ class NoteViewModel(
 
     fun setFilter(type: String) { _uiState.value = _uiState.value.copy(filterType = type) }
 
-    fun createNote(title: String, content: String, type: String = "manual") {
-        viewModelScope.launch { repository.createNote(title, content, type) }
+    fun startNewNote() { _uiState.value = _uiState.value.copy(editingNoteId = null) }
+
+    fun startEditNote(note: NoteEntity) { _uiState.value = _uiState.value.copy(editingNoteId = note.id) }
+
+    fun dismissEdit() { _uiState.value = _uiState.value.copy(editingNoteId = null) }
+
+    fun saveNote(title: String, content: String, type: String = "manual") {
+        viewModelScope.launch {
+            val editingId = _uiState.value.editingNoteId
+            if (editingId != null && editingId > 0) {
+                val note = _uiState.value.notes.find { it.id == editingId } ?: return@launch
+                repository.updateNote(note.copy(title = title, content = content))
+            } else {
+                repository.createNote(title, content, type)
+            }
+            _uiState.value = _uiState.value.copy(editingNoteId = null)
+        }
+    }
+
+    fun showDeleteConfirm(note: NoteEntity) { _uiState.value = _uiState.value.copy(showDeleteConfirm = note) }
+    fun dismissDeleteConfirm() { _uiState.value = _uiState.value.copy(showDeleteConfirm = null) }
+
+    fun deleteNote(id: Long) {
+        viewModelScope.launch {
+            repository.deleteNote(id)
+            _uiState.value = _uiState.value.copy(showDeleteConfirm = null)
+        }
     }
 
     fun saveAiReplyToNote(title: String, content: String) {
         viewModelScope.launch { repository.createNote(title, content, "manual") }
-    }
-
-    fun deleteNote(id: Long) {
-        viewModelScope.launch { repository.deleteNote(id) }
     }
 }

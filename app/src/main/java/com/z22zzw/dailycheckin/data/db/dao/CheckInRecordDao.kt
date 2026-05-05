@@ -21,4 +21,7 @@ interface CheckInRecordDao {
 
     @Insert
     suspend fun insert(record: CheckInRecordEntity): Long
+
+    @Query("DELETE FROM check_in_records WHERE habit_id = :habitId AND date = :date")
+    suspend fun deleteByHabitAndDate(habitId: Long, date: String): Int
 }
