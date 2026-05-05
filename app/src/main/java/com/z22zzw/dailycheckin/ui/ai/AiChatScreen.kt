@@ -1,5 +1,6 @@
 package com.z22zzw.dailycheckin.ui.ai
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,7 +15,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.z22zzw.dailycheckin.di.saveApiConfig
 import com.z22zzw.dailycheckin.ui.theme.*
 import org.koin.compose.viewmodel.koinViewModel
@@ -27,8 +30,12 @@ fun AiChatScreen(viewModel: AiChatViewModel = koinViewModel()) {
     var showSettings by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    LaunchedEffect(uiState.messages.size) {
-        if (uiState.messages.isNotEmpty()) listState.animateScrollToItem(uiState.messages.size - 1)
+    LaunchedEffect(uiState.messages.size, uiState.streamingText) {
+        if (uiState.messages.isNotEmpty() || uiState.streamingText.isNotEmpty()) {
+            listState.animateScrollToItem(
+                uiState.messages.size + if (uiState.streamingText.isNotEmpty()) 1 else 0
+            )
+        }
     }
 
     Column(Modifier.fillMaxSize().padding(24.dp)) {
@@ -41,16 +48,20 @@ fun AiChatScreen(viewModel: AiChatViewModel = koinViewModel()) {
         }
 
         uiState.error?.let { error ->
-            Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 8.dp))
+            TextButton(onClick = { viewModel.clearError() }) {
+                Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 8.dp))
+            }
         }
 
         LazyColumn(Modifier.weight(1f), state = listState) {
-            items(uiState.messages) { message ->
+            items(uiState.messages, key = { it.id }) { message ->
                 val isUser = message.role == "user"
-                Column(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalAlignment = if (isUser) Alignment.End else Alignment.Start) {
+                Column(Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    horizontalAlignment = if (isUser) Alignment.End else Alignment.Start) {
                     Text(
                         message.content,
-                        Modifier.widthIn(max = 280.dp).clip(RoundedCornerShape(12.dp)).background(if (isUser) Gray50 else Blue50).padding(12.dp),
+                        Modifier.widthIn(max = 280.dp).clip(RoundedCornerShape(12.dp))
+                            .background(if (isUser) Blue50 else Gray50).padding(12.dp),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     if (!isUser) {
@@ -60,7 +71,28 @@ fun AiChatScreen(viewModel: AiChatViewModel = koinViewModel()) {
                     }
                 }
             }
-            if (uiState.isLoading) {
+
+            // 流式输出显示
+            if (uiState.streamingText.isNotEmpty()) {
+                item(key = "streaming") {
+                    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalAlignment = Alignment.Start) {
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text(
+                                uiState.streamingText,
+                                Modifier.widthIn(max = 280.dp).clip(RoundedCornerShape(12.dp))
+                                    .background(Gray50).padding(12.dp),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            if (uiState.isLoading) {
+                                Spacer(Modifier.width(4.dp))
+                                Text("|", style = TextStyle(fontSize = 14.sp), color = Gray400)
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (uiState.isLoading && uiState.streamingText.isEmpty()) {
                 item { CircularProgressIndicator(Modifier.padding(16.dp)) }
             }
         }
@@ -83,23 +115,24 @@ fun AiChatScreen(viewModel: AiChatViewModel = koinViewModel()) {
             OutlinedTextField(
                 value = inputText, onValueChange = { inputText = it },
                 placeholder = { Text("问 DeepSeek 任何问题...") },
-                modifier = Modifier.weight(1f), singleLine = false, maxLines = 3
+                modifier = Modifier.weight(1f),
+                singleLine = false,
+                maxLines = 3,
+                enabled = !uiState.isLoading
             )
             Spacer(Modifier.width(8.dp))
             Button(onClick = {
                 if (inputText.isNotBlank()) { viewModel.sendMessage(inputText); inputText = "" }
-            }, colors = ButtonDefaults.buttonColors(containerColor = Blue500)) {
-                Text("发送")
+            }, colors = ButtonDefaults.buttonColors(containerColor = Blue500), enabled = !uiState.isLoading) {
+                Text(if (uiState.isLoading) "..." else "发送")
             }
         }
     }
 
-    // 新引导流程弹窗
     uiState.onboardingStep?.let { step ->
         OnboardingDialog(
             step = step,
             onNext = { answer ->
-                // API Key 步骤特殊处理：同步保存
                 if (step is OnboardingStep.TextInput && step.key == "api_key") {
                     saveApiConfig(context, "https://api.deepseek.com", answer, "deepseek-v4-pro")
                 }
