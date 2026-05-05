@@ -1,22 +1,22 @@
 package com.z22zzw.dailycheckin.ui.ai
 
-sealed class OnboardingStep {
+sealed class OnboardingStep(open val question: String, open val key: String) {
     data class TextInput(
-        val question: String,
-        val key: String,
+        override val question: String,
+        override val key: String,
         val placeholder: String = ""
-    ) : OnboardingStep()
+    ) : OnboardingStep(question, key)
 
     data class Options(
-        val question: String,
-        val key: String,
+        override val question: String,
+        override val key: String,
         val options: List<String>
-    ) : OnboardingStep()
+    ) : OnboardingStep(question, key)
 
     data class DatePicker(
-        val question: String,
-        val key: String
-    ) : OnboardingStep()
+        override val question: String,
+        override val key: String
+    ) : OnboardingStep(question, key)
 }
 
 class AiOnboardingManager {
