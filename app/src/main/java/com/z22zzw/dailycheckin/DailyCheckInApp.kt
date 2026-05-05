@@ -20,6 +20,11 @@ class DailyCheckInApp : Application() {
             androidContext(this@DailyCheckInApp)
             modules(databaseModule, networkModule, repositoryModule, viewModelModule)
         }
+        val prefs = getSharedPreferences("app_prefs", MODE_PRIVATE)
+        val key = prefs.getString("deepseek_api_key", "") ?: ""
+        if (key.isNotBlank()) {
+            com.z22zzw.dailycheckin.di.setApiKey(key)
+        }
         scheduleAiReports()
     }
 

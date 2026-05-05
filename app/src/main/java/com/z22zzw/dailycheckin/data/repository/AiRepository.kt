@@ -11,7 +11,8 @@ class AiRepository(
     private val api: DeepSeekApi,
     private val aiMessageDao: AiMessageDao,
     private val contextBuilder: AiContextBuilder,
-    private val apiKeyProvider: () -> String?
+    private val apiKeyProvider: () -> String?,
+    private val modelProvider: () -> String = { "deepseek-v4-pro[1m]" }
 ) {
     companion object {
         private const val SYSTEM_PROMPT = "你是用户的效率助手，根据提供的客观数据回答。没有数据时，直接说不知道，不要瞎猜。"
@@ -28,7 +29,7 @@ class AiRepository(
         messages.add(Message("user", content))
 
         try {
-            val request = DeepSeekRequest(messages = messages)
+            val request = DeepSeekRequest(model = modelProvider(), messages = messages)
             val response = api.chatCompletion(request)
             if (response.isSuccessful) {
                 val reply = response.body()?.choices?.firstOrNull()?.message?.content ?: "AI 返回为空"
@@ -52,7 +53,7 @@ class AiRepository(
                 Message("system", "$SYSTEM_PROMPT\n\n$context"),
                 Message("user", "请生成${reportType}总结报告")
             )
-            val request = DeepSeekRequest(messages = messages)
+            val request = DeepSeekRequest(model = modelProvider(), messages = messages)
             val response = api.chatCompletion(request)
             if (response.isSuccessful) {
                 val reply = response.body()?.choices?.firstOrNull()?.message?.content ?: ""

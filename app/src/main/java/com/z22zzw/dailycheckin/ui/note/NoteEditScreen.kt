@@ -1,5 +1,6 @@
 package com.z22zzw.dailycheckin.ui.note
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -8,6 +9,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.z22zzw.dailycheckin.data.db.entity.NoteEntity
 import org.koin.compose.viewmodel.koinViewModel
@@ -22,6 +24,7 @@ fun NoteEditScreen(
     var title by remember { mutableStateOf(note?.title ?: "") }
     var content by remember { mutableStateOf(note?.content ?: "") }
     var showPreview by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -40,6 +43,8 @@ fun NoteEditScreen(
                         if (title.isNotBlank()) {
                             viewModel.saveNote(title, content)
                             onBack()
+                        } else {
+                            Toast.makeText(context, "标题不能为空", Toast.LENGTH_SHORT).show()
                         }
                     }) { Text("保存") }
                 }

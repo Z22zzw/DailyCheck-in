@@ -32,22 +32,21 @@ class ProjectViewModel(private val repository: ProjectRepository) : ViewModel() 
     private val _uiState = MutableStateFlow(ProjectUiState())
     val uiState: StateFlow<ProjectUiState> = _uiState.asStateFlow()
 
-    init { loadProjects() }
+    init { refresh() }
 
-    private fun loadProjects() {
+    private fun refresh() {
         viewModelScope.launch {
-            repository.getActiveProjects().collect { projects ->
-                val items = projects.map { project ->
-                    val tasks = repository.getTasksByProject(project.id).first()
-                    ProjectWithProgress(
-                        project = project,
-                        totalTasks = repository.getTaskCount(project.id),
-                        doneTasks = repository.getDoneTaskCount(project.id),
-                        tasks = tasks
-                    )
-                }
-                _uiState.value = _uiState.value.copy(projects = items, isLoading = false)
+            val projects = repository.getActiveProjects().first()
+            val items = projects.map { project ->
+                val tasks = repository.getTasksByProject(project.id).first()
+                ProjectWithProgress(
+                    project = project,
+                    totalTasks = repository.getTaskCount(project.id),
+                    doneTasks = repository.getDoneTaskCount(project.id),
+                    tasks = tasks
+                )
             }
+            _uiState.value = _uiState.value.copy(projects = items, isLoading = false)
         }
     }
 
@@ -55,6 +54,7 @@ class ProjectViewModel(private val repository: ProjectRepository) : ViewModel() 
         viewModelScope.launch {
             repository.createProject(name = name, deadline = deadline)
             _uiState.value = _uiState.value.copy(showCreateDialog = false)
+            refresh()
         }
     }
 
@@ -63,6 +63,7 @@ class ProjectViewModel(private val repository: ProjectRepository) : ViewModel() 
         viewModelScope.launch {
             repository.updateProject(editing.copy(name = name, deadline = deadline))
             _uiState.value = _uiState.value.copy(showEditDialog = null)
+            refresh()
         }
     }
 
@@ -71,22 +72,30 @@ class ProjectViewModel(private val repository: ProjectRepository) : ViewModel() 
         viewModelScope.launch {
             repository.deleteProject(project.id)
             _uiState.value = _uiState.value.copy(showDeleteConfirm = null)
+            refresh()
         }
     }
 
     fun toggleTask(task: TaskEntity) {
-        viewModelScope.launch { repository.toggleTask(task) }
+        viewModelScope.launch {
+            repository.toggleTask(task)
+            refresh()
+        }
     }
 
     fun addTask(projectId: Long, title: String) {
         viewModelScope.launch {
             repository.createTask(projectId, title)
             _uiState.value = _uiState.value.copy(newTaskTitle = "")
+            refresh()
         }
     }
 
     fun deleteTask(task: TaskEntity) {
-        viewModelScope.launch { repository.deleteTask(task.id) }
+        viewModelScope.launch {
+            repository.deleteTask(task.id)
+            refresh()
+        }
     }
 
     fun showCreateDialog() { _uiState.value = _uiState.value.copy(showCreateDialog = true) }

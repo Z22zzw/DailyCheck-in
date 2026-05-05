@@ -35,7 +35,7 @@ class NoteViewModel(
 
     fun setFilter(type: String) { _uiState.value = _uiState.value.copy(filterType = type) }
 
-    fun startNewNote() { _uiState.value = _uiState.value.copy(editingNoteId = null) }
+    fun startNewNote() { _uiState.value = _uiState.value.copy(editingNoteId = 0L) }
 
     fun startEditNote(note: NoteEntity) { _uiState.value = _uiState.value.copy(editingNoteId = note.id) }
 
@@ -46,7 +46,7 @@ class NoteViewModel(
             val editingId = _uiState.value.editingNoteId
             if (editingId != null && editingId > 0) {
                 val note = _uiState.value.notes.find { it.id == editingId } ?: return@launch
-                repository.updateNote(note.copy(title = title, content = content))
+                repository.updateNote(note.copy(title = title, content = content, updatedAt = System.currentTimeMillis()))
             } else {
                 repository.createNote(title, content, type)
             }
@@ -64,7 +64,4 @@ class NoteViewModel(
         }
     }
 
-    fun saveAiReplyToNote(title: String, content: String) {
-        viewModelScope.launch { repository.createNote(title, content, "manual") }
-    }
 }

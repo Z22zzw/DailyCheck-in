@@ -76,7 +76,13 @@ val repositoryModule = module {
     single { ProjectRepository(get(), get()) }
     single { NoteRepository(get()) }
     single { AiContextBuilder(get(), get(), get(), get(), get()) }
-    single { AiRepository(get(), get(), get(), getApiKeyProvider()) }
+    single {
+        val ctx = androidContext()
+        AiRepository(get(), get(), get(), getApiKeyProvider()) {
+            ctx.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                .getString("deepseek_model", "deepseek-v4-pro[1m]") ?: "deepseek-v4-pro[1m]"
+        }
+    }
 }
 
 val viewModelModule = module {
@@ -114,6 +120,7 @@ fun saveApiConfig(context: Context, url: String, key: String, model: String) {
         .putString("deepseek_api_key", key)
         .putString("deepseek_model", model)
         .apply()
+    setApiKey(key)
 }
 
 private fun getApiKeyProvider(): () -> String? = { _apiKey }

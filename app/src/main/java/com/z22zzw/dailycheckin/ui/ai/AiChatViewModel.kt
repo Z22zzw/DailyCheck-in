@@ -15,7 +15,7 @@ data class AiChatUiState(
     val messages: List<AiMessageEntity> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
-    val onboardingQuestion: String? = null
+    val onboardingStep: OnboardingStep? = null
 )
 
 class AiChatViewModel(
@@ -47,31 +47,41 @@ class AiChatViewModel(
             if (profileNotes.isEmpty()) {
                 onboardingManager = AiOnboardingManager()
                 _uiState.value = _uiState.value.copy(
-                    onboardingQuestion = onboardingManager?.getCurrentQuestion()
+                    onboardingStep = onboardingManager?.getCurrentStep()
                 )
             }
         }
     }
 
+    fun onboardingAnswer(value: String) {
+        val manager = onboardingManager ?: return
+        // API Key 特殊处理：同步保存到 SharedPreferences 和 AppModule
+        val step = manager.getCurrentStep()
+        if (step is OnboardingStep.TextInput && step.key == "api_key") {
+            noteRepository // context not available here; saveApiConfig called in AiChatScreen
+        }
+
+        val nextStep = manager.recordAnswer(value)
+        if (manager.isComplete()) {
+            val profile = manager.buildProfile()
+            viewModelScope.launch {
+                noteRepository.createNote("我的个人画像", profile, "profile")
+            }
+            onboardingManager = null
+            _uiState.value = _uiState.value.copy(onboardingStep = null)
+        } else {
+            _uiState.value = _uiState.value.copy(onboardingStep = nextStep)
+        }
+    }
+
+    fun skipOnboarding() {
+        onboardingManager = null
+        _uiState.value = _uiState.value.copy(onboardingStep = null)
+    }
+
     fun sendMessage(content: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-
-            if (onboardingManager != null && !onboardingManager!!.isComplete()) {
-                val profileContent = onboardingManager!!.recordAnswer(content)
-                if (profileContent != null) {
-                    noteRepository.createNote("我的个人画像", profileContent, "profile")
-                    onboardingManager = null
-                    _uiState.value = _uiState.value.copy(onboardingQuestion = null, isLoading = false)
-                    return@launch
-                }
-                _uiState.value = _uiState.value.copy(
-                    onboardingQuestion = onboardingManager?.getCurrentQuestion(),
-                    isLoading = false
-                )
-                return@launch
-            }
-
             val result = aiRepository.sendMessage(content)
             result.fold(
                 onSuccess = { _uiState.value = _uiState.value.copy(isLoading = false) },
@@ -101,4 +111,6 @@ class AiChatViewModel(
     }
 
     fun clearError() { _uiState.value = _uiState.value.copy(error = null) }
+
+    fun getOnboardingAnswer(key: String): String? = onboardingManager?.getAnswer(key)
 }

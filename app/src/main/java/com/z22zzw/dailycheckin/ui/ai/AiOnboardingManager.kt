@@ -1,40 +1,61 @@
 package com.z22zzw.dailycheckin.ui.ai
 
+sealed class OnboardingStep {
+    data class TextInput(
+        val question: String,
+        val key: String,
+        val placeholder: String = ""
+    ) : OnboardingStep()
+
+    data class Options(
+        val question: String,
+        val key: String,
+        val options: List<String>
+    ) : OnboardingStep()
+
+    data class DatePicker(
+        val question: String,
+        val key: String
+    ) : OnboardingStep()
+}
+
 class AiOnboardingManager {
-    private val questions = listOf(
-        "嗨！让我们快速设置一下。你现在最重要的目标是什么？",
-        "你一般在哪些时间段精力最好？",
-        "你觉得自己最容易在什么事情上拖延？",
-        "有没有什么习惯你一直想养成但没坚持下来？",
-        "还有什么特别想让 AI 了解的吗？（可以直接跳过）"
+    private val steps = listOf(
+        OnboardingStep.TextInput("请先输入您的 DeepSeek API Key", "api_key", "sk-..."),
+        OnboardingStep.TextInput("您的姓名是？", "name", "请输入姓名"),
+        OnboardingStep.Options("您的性别是？", "gender", listOf("男", "女")),
+        OnboardingStep.DatePicker("您的出生年月是？", "birth_date"),
+        OnboardingStep.TextInput("您的职业或身份是？", "occupation", "如：学生、程序员..."),
+        OnboardingStep.Options("您更偏好什么类型的建议？", "advice_style", listOf("鼓励型", "直接型", "分析型"))
     )
 
-    private var currentQuestionIndex = 0
-    private val answers = mutableListOf<String>()
+    private var currentIndex = 0
+    private val answers = mutableMapOf<String, String>()
 
-    fun isComplete(): Boolean = currentQuestionIndex >= questions.size
+    fun isComplete(): Boolean = currentIndex >= steps.size
 
-    fun getCurrentQuestion(): String? {
-        return if (isComplete()) null else questions[currentQuestionIndex]
+    fun getCurrentStep(): OnboardingStep? {
+        return if (isComplete()) null else steps[currentIndex]
     }
 
-    fun recordAnswer(answer: String): String? {
-        answers.add(answer)
-        currentQuestionIndex++
-        return if (isComplete()) buildProfile() else null
+    fun recordAnswer(value: String): OnboardingStep? {
+        val step = steps[currentIndex]
+        answers[step.key] = value
+        currentIndex++
+        return if (isComplete()) null else steps[currentIndex]
     }
 
-    private fun buildProfile(): String {
+    fun buildProfile(): String {
         return buildString {
             appendLine("### 个人画像")
             appendLine()
-            appendLine("**目标：** ${answers.getOrElse(0) { "" }}")
-            appendLine("**精力时段：** ${answers.getOrElse(1) { "" }}")
-            appendLine("**容易拖延的事：** ${answers.getOrElse(2) { "" }}")
-            appendLine("**想养成的习惯：** ${answers.getOrElse(3) { "" }}")
-            if (answers.size > 4 && answers[4].isNotBlank()) {
-                appendLine("**补充：** ${answers[4]}")
-            }
+            answers["name"]?.let { appendLine("**姓名：** $it") }
+            answers["gender"]?.let { appendLine("**性别：** $it") }
+            answers["birth_date"]?.let { appendLine("**出生年月：** $it") }
+            answers["occupation"]?.let { appendLine("**职业/身份：** $it") }
+            answers["advice_style"]?.let { appendLine("**偏好建议风格：** $it") }
         }
     }
+
+    fun getAnswer(key: String): String? = answers[key]
 }

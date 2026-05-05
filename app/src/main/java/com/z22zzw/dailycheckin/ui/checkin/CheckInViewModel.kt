@@ -7,6 +7,7 @@ import com.z22zzw.dailycheckin.data.repository.CheckInRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 data class HabitItem(
@@ -29,27 +30,34 @@ class CheckInViewModel(
     private val _uiState = MutableStateFlow(CheckInUiState())
     val uiState: StateFlow<CheckInUiState> = _uiState.asStateFlow()
 
-    init {
+    init { refresh() }
+
+    private fun refresh() {
         viewModelScope.launch {
-            repository.getActiveHabits().collect { habits ->
-                val items = habits.map { habit ->
-                    HabitItem(
-                        habit = habit,
-                        totalCount = repository.getCheckInCount(habit.id),
-                        checkedInToday = repository.isCheckedInToday(habit.id)
-                    )
-                }
-                _uiState.value = CheckInUiState(habits = items, isLoading = false)
+            val habits = repository.getActiveHabits().first()
+            val items = habits.map { habit ->
+                HabitItem(
+                    habit = habit,
+                    totalCount = repository.getCheckInCount(habit.id),
+                    checkedInToday = repository.isCheckedInToday(habit.id)
+                )
             }
+            _uiState.value = _uiState.value.copy(habits = items, isLoading = false)
         }
     }
 
     fun checkIn(habitId: Long) {
-        viewModelScope.launch { repository.checkIn(habitId) }
+        viewModelScope.launch {
+            repository.checkIn(habitId)
+            refresh()
+        }
     }
 
     fun uncheckIn(habitId: Long) {
-        viewModelScope.launch { repository.uncheckIn(habitId) }
+        viewModelScope.launch {
+            repository.uncheckIn(habitId)
+            refresh()
+        }
     }
 
     fun showUncheckConfirm(habitId: Long) {
@@ -64,6 +72,7 @@ class CheckInViewModel(
         viewModelScope.launch {
             repository.createHabit(name)
             _uiState.value = _uiState.value.copy(showAddDialog = false)
+            refresh()
         }
     }
 

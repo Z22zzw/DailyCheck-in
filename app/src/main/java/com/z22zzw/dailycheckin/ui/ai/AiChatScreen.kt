@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.z22zzw.dailycheckin.di.getApiConfig
+import com.z22zzw.dailycheckin.di.saveApiConfig
 import com.z22zzw.dailycheckin.ui.theme.*
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -25,13 +25,7 @@ fun AiChatScreen(viewModel: AiChatViewModel = koinViewModel()) {
     val listState = rememberLazyListState()
     var inputText by remember { mutableStateOf("") }
     var showSettings by remember { mutableStateOf(false) }
-
-    // 首次打开检查：如果没有 API Key 则自动弹出设置
     val context = LocalContext.current
-    LaunchedEffect(Unit) {
-        val (_, key, _) = getApiConfig(context)
-        if (key.isBlank()) showSettings = true
-    }
 
     LaunchedEffect(uiState.messages.size) {
         if (uiState.messages.isNotEmpty()) listState.animateScrollToItem(uiState.messages.size - 1)
@@ -44,15 +38,6 @@ fun AiChatScreen(viewModel: AiChatViewModel = koinViewModel()) {
             IconButton(onClick = { showSettings = true }) {
                 Icon(Icons.Default.Settings, contentDescription = "设置", tint = Gray400)
             }
-        }
-
-        uiState.onboardingQuestion?.let { question ->
-            Text(
-                question,
-                Modifier.fillMaxWidth().padding(vertical = 12.dp).background(Blue50, RoundedCornerShape(12.dp)).padding(14.dp),
-                style = MaterialTheme.typography.bodyMedium,
-                color = Blue500
-            )
         }
 
         uiState.error?.let { error ->
@@ -107,6 +92,21 @@ fun AiChatScreen(viewModel: AiChatViewModel = koinViewModel()) {
                 Text("发送")
             }
         }
+    }
+
+    // 新引导流程弹窗
+    uiState.onboardingStep?.let { step ->
+        OnboardingDialog(
+            step = step,
+            onNext = { answer ->
+                // API Key 步骤特殊处理：同步保存
+                if (step is OnboardingStep.TextInput && step.key == "api_key") {
+                    saveApiConfig(context, "https://api.deepseek.com", answer, "deepseek-v4-pro[1m]")
+                }
+                viewModel.onboardingAnswer(answer)
+            },
+            onSkip = { viewModel.skipOnboarding() }
+        )
     }
 
     if (showSettings) {
