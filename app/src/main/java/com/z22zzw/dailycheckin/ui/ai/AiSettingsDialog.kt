@@ -43,7 +43,7 @@ fun AiSettingsDialog(onDismiss: () -> Unit) {
                     label = { Text("模型") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("deepseek-v4-pro[1m]") }
+                    placeholder = { Text("deepseek-v4-pro") }
                 )
             }
         },

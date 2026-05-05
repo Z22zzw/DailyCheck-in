@@ -12,7 +12,7 @@ class AiRepository(
     private val aiMessageDao: AiMessageDao,
     private val contextBuilder: AiContextBuilder,
     private val apiKeyProvider: () -> String?,
-    private val modelProvider: () -> String = { "deepseek-v4-pro[1m]" }
+    private val modelProvider: () -> String = { "deepseek-v4-pro" }
 ) {
     companion object {
         private const val SYSTEM_PROMPT = "你是用户的效率助手，根据提供的客观数据回答。没有数据时，直接说不知道，不要瞎猜。"

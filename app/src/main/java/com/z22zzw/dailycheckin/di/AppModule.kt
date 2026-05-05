@@ -80,7 +80,7 @@ val repositoryModule = module {
         val ctx = androidContext()
         AiRepository(get(), get(), get(), getApiKeyProvider()) {
             ctx.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-                .getString("deepseek_model", "deepseek-v4-pro[1m]") ?: "deepseek-v4-pro[1m]"
+                .getString("deepseek_model", "deepseek-v4-pro") ?: "deepseek-v4-pro"
         }
     }
 }
@@ -109,7 +109,7 @@ fun getApiConfig(context: Context): Triple<String, String, String> {
     return Triple(
         prefs.getString("deepseek_base_url", "https://api.deepseek.com") ?: "https://api.deepseek.com",
         prefs.getString("deepseek_api_key", "") ?: "",
-        prefs.getString("deepseek_model", "deepseek-v4-pro[1m]") ?: "deepseek-v4-pro[1m]"
+        prefs.getString("deepseek_model", "deepseek-v4-pro") ?: "deepseek-v4-pro"
     )
 }
 

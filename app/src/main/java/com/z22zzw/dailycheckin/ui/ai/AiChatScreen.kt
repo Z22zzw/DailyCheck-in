@@ -101,7 +101,7 @@ fun AiChatScreen(viewModel: AiChatViewModel = koinViewModel()) {
             onNext = { answer ->
                 // API Key 步骤特殊处理：同步保存
                 if (step is OnboardingStep.TextInput && step.key == "api_key") {
-                    saveApiConfig(context, "https://api.deepseek.com", answer, "deepseek-v4-pro[1m]")
+                    saveApiConfig(context, "https://api.deepseek.com", answer, "deepseek-v4-pro")
                 }
                 viewModel.onboardingAnswer(answer)
             },
