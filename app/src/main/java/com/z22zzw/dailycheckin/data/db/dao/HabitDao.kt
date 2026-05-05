@@ -26,4 +26,7 @@ interface HabitDao {
 
     @Query("UPDATE habits SET is_archived = 1 WHERE id = :id")
     suspend fun archive(id: Long)
+
+    @Query("DELETE FROM habits WHERE id = :id")
+    suspend fun delete(id: Long)
 }

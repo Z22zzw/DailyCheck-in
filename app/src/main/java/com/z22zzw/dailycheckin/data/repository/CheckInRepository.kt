@@ -48,4 +48,8 @@ class CheckInRepository(
         val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
         checkInRecordDao.deleteByHabitAndDate(habitId, today)
     }
+
+    suspend fun updateHabit(habit: HabitEntity) = habitDao.update(habit)
+
+    suspend fun deleteHabit(id: Long) = habitDao.delete(id)
 }

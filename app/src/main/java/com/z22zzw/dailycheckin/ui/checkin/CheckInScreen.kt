@@ -57,6 +57,7 @@ fun CheckInScreen(viewModel: CheckInViewModel = koinViewModel()) {
                                 },
                                 onLongClick = {
                                     if (item.checkedInToday) viewModel.showUncheckConfirm(item.habit.id)
+                                    else viewModel.showEditDialog(item.habit)
                                 }
                             ),
                         shape = RoundedCornerShape(14.dp),
@@ -97,6 +98,7 @@ fun CheckInScreen(viewModel: CheckInViewModel = koinViewModel()) {
         }
     }
 
+    // 新建对话框
     if (uiState.showAddDialog) {
         var habitName by remember { mutableStateOf("") }
         AlertDialog(
@@ -110,6 +112,43 @@ fun CheckInScreen(viewModel: CheckInViewModel = koinViewModel()) {
         )
     }
 
+    // 编辑对话框
+    uiState.showEditDialog?.let { habit ->
+        var editName by remember(habit.id) { mutableStateOf(habit.name) }
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissEditDialog() },
+            title = { Text("编辑习惯") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = editName, onValueChange = { editName = it }, label = { Text("名称") }, singleLine = true)
+                    OutlinedButton(
+                        onClick = { viewModel.showDeleteConfirm(habit); viewModel.dismissEditDialog() },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) { Text("删除习惯") }
+                }
+            },
+            confirmButton = { Button(onClick = { viewModel.updateHabit(editName) }) { Text("保存") } },
+            dismissButton = { OutlinedButton(onClick = { viewModel.dismissEditDialog() }) { Text("取消") } }
+        )
+    }
+
+    // 删除确认
+    if (uiState.showDeleteConfirm != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissDeleteConfirm() },
+            title = { Text("删除习惯") },
+            text = { Text("确定删除「${uiState.showDeleteConfirm!!.name}」吗？所有打卡记录也会被删除。") },
+            confirmButton = {
+                Button(onClick = { viewModel.deleteHabit() }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
+                    Text("删除")
+                }
+            },
+            dismissButton = { OutlinedButton(onClick = { viewModel.dismissDeleteConfirm() }) { Text("取消") } }
+        )
+    }
+
+    // 取消打卡确认
     if (uiState.showUncheckConfirm != null) {
         AlertDialog(
             onDismissRequest = { viewModel.dismissUncheckConfirm() },
